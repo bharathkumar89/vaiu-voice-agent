@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Voice Restaurant Booking Agent</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+
+        button {
+            padding: 8px 14px;
+            margin: 6px;
+        }
+
+        #log {
+            white-space: pre-wrap;
+            border: 1px solid #ddd;
+            padding: 12px;
+            min-height: 140px;
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Voice Restaurant Booking Agent</h2>
+    <button id="start">Start Voice Booking</button>
+    <button id="stop">Stop</button>
+    <div id="log"></div>
+
+    <script>
+        const logEl = document.getElementById('log');
+        function log(msg) { logEl.innerText += msg + '\n'; }
+
+        // TTS helper
+        function speak(text) {
+            return new Promise(resolve => {
+                const u = new SpeechSynthesisUtterance(text);
+                u.onend = resolve;
+                speechSynthesis.speak(u);
+            });
+        }
+
+        // Questions flow
+        const questions = [
+            { key: 'customerName', q: 'Hello! What name should I use for the booking?' },
+            { key: 'numberOfGuests', q: 'How many guests?' },
+            { key: 'bookingDate', q: 'Which date would you like to book? Say like July 21 or 21 August.' },
+            { key: 'bookingTime', q: 'At what time should I reserve the table?' },
+            { key: 'cuisinePreference', q: 'Any preferred cuisine? Italian, Chinese, Indian, etc.' },
+            { key: 'specialRequests', q: 'Any special requests? For example birthday, anniversary, or dietary restrictions?' }
+        ];
+
+        let data = {};
+        let i = 0;
+        let recognition;
+
+        function createRec() {
+            const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!Rec) return null;
+            const r = new Rec();
+            r.lang = 'en-IN';
+            r.interimResults = false;
+            r.maxAlternatives = 1;
+            return r;
+        }
+
+        document.getElementById('start').onclick = async () => {
+            recognition = createRec();
+            if (!recognition) { alert('SpeechRecognition not supported. Use Chrome.'); return; }
+
+            recognition.onresult = async (e) => {
+                const text = e.results[0][0].transcript.trim();
+                log('You: ' + text);
+                const key = questions[i].key;
+                data[key] = text;
+                i++;
+                if (i < questions.length) {
+                    await askQuestion(i);
+                } else {
+                    recognition.stop();
+                    await speak('Thanks. I will confirm your booking now.');
+                    await submitBooking();
+                }
+            };
+
+            recognition.onerror = (e) => {
+                log('Recognition error: ' + e.error);
+            };
+
+            i = 0;
+            data = {};
+            await askQuestion(0);
+        };
+
+        document.getElementById('stop').onclick = () => {
+            if (recognition) recognition.stop();
+            speak('Stopped.');
+        };
+
+        async function askQuestion(idx) {
+            const q = questions[idx].q;
+            log('Agent: ' + q);
+            await speak(q);
+            recognition.start();
+        }
+
+        async function submitBooking() {
+            data.numberOfGuests = parseInt(data.numberOfGuests) || 1;
+            let dt = new Date(data.bookingDate);
+            if (isNaN(dt)) { dt = new Date(); dt.setDate(dt.getDate() + 1); }
+            data.bookingDate = dt.toISOString();
+
+            const res = await fetch('/api/bookings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ...data, location: null })
+            });
+            const json = await res.json();
+            log('Server: ' + JSON.stringify(json, null, 2));
+            const suggestion = json.booking?.weatherInfo?.suggestion || '';
+            await speak(`Your booking is confirmed for ${json.booking.numberOfGuests} guests on ${new Date(json.booking.bookingDate).toDateString()}. ${suggestion}`);
+        }
+    </script>
+</body>
+
+</html>
