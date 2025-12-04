@@ -1,128 +1,762 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 
 <head>
     <meta charset="utf-8" />
-    <title>Voice Restaurant Booking Agent</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Voice Restaurant Booking — Index</title>
     <style>
+        :root {
+            --bg: #f5f7fb;
+            --card: #fff;
+            --accent: #0f62fe;
+            --muted: #6b7280
+        }
+
         body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
+            font-family: Inter, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+            background: var(--bg);
+            margin: 0;
+            color: #0b1220
         }
 
-        button {
-            padding: 8px 14px;
-            margin: 6px;
+        .wrap {
+            max-width: 980px;
+            margin: 20px auto;
+            padding: 18px
         }
 
-        #log {
-            white-space: pre-wrap;
-            border: 1px solid #ddd;
+        .card {
+            background: var(--card);
+            padding: 18px;
+            border-radius: 12px;
+            box-shadow: 0 6px 24px rgba(10, 15, 30, 0.06)
+        }
+
+        h1 {
+            margin: 0 0 12px;
+            font-size: 20px
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .btn {
+            background: var(--accent);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer
+        }
+
+        .btn.alt {
+            background: #eef4ff;
+            color: var(--accent);
+            border: 1px solid #dbeafe
+        }
+
+        .status {
+            margin-top: 8px;
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 12px;
+            margin-top: 14px
+        }
+
+        .left {
+            min-height: 200px
+        }
+
+        .meter {
+            height: 14px;
+            border-radius: 8px;
+            background: #eef2ff;
+            overflow: hidden
+        }
+
+        .meter-bar {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--accent), #7c3aed)
+        }
+
+        .transcript {
+            margin-top: 8px;
+            padding: 8px;
+            border-radius: 8px;
+            background: #fbfdff;
+            border: 1px solid #eef2f7;
+            font-size: 14px
+        }
+
+        .step {
+            border-radius: 10px;
             padding: 12px;
-            min-height: 140px;
+            border: 1px solid #eef2f6;
+            margin-bottom: 8px;
+            background: #fff
+        }
+
+        .label {
+            font-weight: 600
+        }
+
+        .muted {
+            color: var(--muted);
+            font-size: 13px
+        }
+
+        .summary {
+            margin-top: 12px;
+            padding: 10px;
+            background: #fafbff;
+            border-radius: 8px;
+            border: 1px dashed #e6eef6
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #e6eef6;
+            margin-top: 6px
+        }
+
+        .row {
+            display: flex;
+            gap: 8px
+        }
+
+        .row>* {
+            flex: 1
+        }
+
+        .right {
+            min-width: 320px
+        }
+
+        .small {
+            font-size: 13px;
+            color: var(--muted)
+        }
+
+        pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #eef2f6
+        }
+
+        .confirm-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 10px
+        }
+
+        @media (max-width:880px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .right {
+                min-width: unset
+            }
         }
     </style>
 </head>
 
 <body>
-    <h2>Voice Restaurant Booking Agent</h2>
-    <button id="start">Start Voice Booking</button>
-    <button id="stop">Stop</button>
-    <div id="log"></div>
+    <div class="wrap">
+        <div class="card">
+            <h1>Voice Restaurant Booking</h1>
+
+            <div class="controls">
+                <button id="startBtn" class="btn">Start Voice Flow</button>
+                <button id="stopBtn" class="btn alt">Stop</button>
+                <label style="display:flex;align-items:center;gap:8px">
+                    Language:
+                    <select id="langSelect">
+                        <option value="en-IN">English (en-IN)</option>
+                        <option value="hi-IN">Hindi (hi-IN)</option>
+                    </select>
+                </label>
+                <button id="previewBtn" class="btn alt">Preview Booking (send to backend)</button>
+            </div>
+
+            <div class="status" id="flowStatus">Idle — press Start Voice Flow</div>
+
+            <div class="grid">
+                <div class="left">
+                    <div class="step">
+                        <div class="label">Mic level</div>
+                        <div class="meter" aria-hidden="true">
+                            <div id="meterBar" class="meter-bar"></div>
+                        </div>
+                        <div class="transcript" id="transcript">Transcript will appear here.</div>
+                    </div>
+
+                    <div id="stepsArea">
+                        <div class="step" id="step-customerName">
+                            <div class="label">Name</div>
+                            <div class="small">Ask: "What name should I use for the booking?"</div>
+                            <div class="muted" id="val-customerName">—</div>
+                        </div>
+                        <div class="step" id="step-numberOfGuests">
+                            <div class="label">Number of guests</div>
+                            <div class="small">Ask: "Please say the number with the word 'guests', e.g., '2 guests' or
+                                'two guests'."</div>
+                            <div class="muted" id="val-numberOfGuests">—</div>
+                        </div>
+                        <div class="step" id="step-bookingDate">
+                            <div class="label">Date</div>
+                            <div class="small">Say: "20 August", "July 21"</div>
+                            <div class="muted" id="val-bookingDate">—</div>
+                        </div>
+                        <div class="step" id="step-bookingTime">
+                            <div class="label">Time</div>
+                            <div class="small">Say: "6 pm", "6:00 p.m."</div>
+                            <div class="muted" id="val-bookingTime">—</div>
+                        </div>
+                        <div class="step" id="step-cuisinePreference">
+                            <div class="label">Cuisine</div>
+                            <div class="small">e.g., Indian, Italian</div>
+                            <div class="muted" id="val-cuisinePreference">—</div>
+                        </div>
+                        <div class="step" id="step-specialRequests">
+                            <div class="label">Special requests</div>
+                            <div class="small">Birthday, dietary restrictions</div>
+                            <div class="muted" id="val-specialRequests">—</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right">
+                    <div class="summary">
+                        <h3 style="margin:0 0 8px">Final summary (editable)</h3>
+                        <label class="small">Customer name</label>
+                        <input id="edit-customerName" placeholder="Name" />
+                        <div class="row" style="margin-top:8px">
+                            <div>
+                                <label class="small">Number of guests</label>
+                                <input id="edit-numberOfGuests" type="number" min="1" />
+                            </div>
+                            <div>
+                                <label class="small">Date</label>
+                                <input id="edit-bookingDate" placeholder="YYYY-MM-DD or 20 Aug" />
+                            </div>
+                            <div>
+                                <label class="small">Time</label>
+                                <input id="edit-bookingTime" placeholder="6:00 PM" />
+                            </div>
+                        </div>
+                        <label class="small" style="margin-top:8px">Cuisine</label>
+                        <input id="edit-cuisinePreference" />
+                        <label class="small" style="margin-top:8px">Special requests</label>
+                        <textarea id="edit-specialRequests" rows="2"></textarea>
+
+                        <div class="confirm-row">
+                            <button id="applyEdit" class="btn alt">Apply Edits</button>
+                            <button id="confirmBtn" class="btn">Confirm & Preview</button>
+                        </div>
+                        <div id="previewResult" style="margin-top:8px;display:none">
+                            <pre id="previewJson"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
-        const logEl = document.getElementById('log');
-        function log(msg) { logEl.innerText += msg + '\n'; }
+        /* ===========================
+           Config & Globals
+           =========================== */
+        const MAX_GUESTS = 30;    // sensible upper bound to avoid weird numbers
+        let meterRAF = null, audioStream = null, audioCtx = null, analyser = null;
+        let currentRecognition = null;
+        let running = false;
+        const fields = ['customerName', 'numberOfGuests', 'bookingDate', 'bookingTime', 'cuisinePreference', 'specialRequests'];
+        const collected = { customerName: '', numberOfGuests: null, bookingDate: null, bookingTime: null, cuisinePreference: '', specialRequests: '' };
 
-        // TTS helper
-        function speak(text) {
-            return new Promise(resolve => {
-                const u = new SpeechSynthesisUtterance(text);
-                u.onend = resolve;
-                speechSynthesis.speak(u);
-            });
+        /* ===========================
+           Utilities: words -> number
+           =========================== */
+        function wordsToNumber(s) {
+            s = (s || '').toString().toLowerCase().replace(/[-,]/g, ' ').replace(/\band\b/g, ' ');
+            const small = {
+                zero: 0, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9,
+                ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19
+            };
+            const tens = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
+            const parts = s.split(/\s+/).filter(Boolean);
+            let total = 0, cur = 0;
+            for (const p of parts) {
+                if (small[p] != null) cur += small[p];
+                else if (tens[p] != null) cur += tens[p];
+                else if (p === 'hundred') cur *= 100;
+                else if (p === 'thousand') { cur *= 1000; total += cur; cur = 0; }
+                else if (!isNaN(parseInt(p))) cur += parseInt(p);
+            }
+            return total + cur;
+        }
+        function extractNumberFromText(text) {
+            if (!text) return null;
+            const d = text.match(/(\d{1,3})/);
+            if (d) return parseInt(d[1], 10);
+            const wordMatch = text.match(/((?:zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|and|\s|-)+)/i);
+            if (wordMatch) {
+                const v = wordsToNumber(wordMatch[1]);
+                if (v) return v;
+            }
+            return null;
         }
 
-        // Questions flow
-        const questions = [
-            { key: 'customerName', q: 'Hello! What name should I use for the booking?' },
-            { key: 'numberOfGuests', q: 'How many guests?' },
-            { key: 'bookingDate', q: 'Which date would you like to book? Say like July 21 or 21 August.' },
-            { key: 'bookingTime', q: 'At what time should I reserve the table?' },
-            { key: 'cuisinePreference', q: 'Any preferred cuisine? Italian, Chinese, Indian, etc.' },
-            { key: 'specialRequests', q: 'Any special requests? For example birthday, anniversary, or dietary restrictions?' }
-        ];
-
-        let data = {};
-        let i = 0;
-        let recognition;
-
-        function createRec() {
-            const Rec = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!Rec) return null;
-            const r = new Rec();
-            r.lang = 'en-IN';
-            r.interimResults = false;
-            r.maxAlternatives = 1;
-            return r;
-        }
-
-        document.getElementById('start').onclick = async () => {
-            recognition = createRec();
-            if (!recognition) { alert('SpeechRecognition not supported. Use Chrome.'); return; }
-
-            recognition.onresult = async (e) => {
-                const text = e.results[0][0].transcript.trim();
-                log('You: ' + text);
-                const key = questions[i].key;
-                data[key] = text;
-                i++;
-                if (i < questions.length) {
-                    await askQuestion(i);
-                } else {
-                    recognition.stop();
-                    await speak('Thanks. I will confirm your booking now.');
-                    await submitBooking();
+        /* ===========================
+           Date / time parsing helpers
+           (simple, covers common cases)
+           =========================== */
+        function parseDateSmart(text) {
+            if (!text) return null;
+            const iso = Date.parse(text);
+            if (!isNaN(iso)) return new Date(iso);
+            // day + month
+            const m = text.match(/(\d{1,2})\s*(?:st|nd|rd|th)?\s*([A-Za-z]+)/i);
+            const months = {
+                jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
+                january: 0, february: 1, march: 2, april: 3, may: 4, june: 5, july: 6, august: 7, september: 8, october: 9, november: 10, december: 11
+            };
+            if (m) {
+                const day = parseInt(m[1], 10);
+                const monKey = m[2].toLowerCase().slice(0, 3);
+                const mon = months[monKey];
+                if (mon != null) {
+                    const now = new Date();
+                    const year = now.getFullYear();
+                    return new Date(year, mon, day);
                 }
-            };
-
-            recognition.onerror = (e) => {
-                log('Recognition error: ' + e.error);
-            };
-
-            i = 0;
-            data = {};
-            await askQuestion(0);
-        };
-
-        document.getElementById('stop').onclick = () => {
-            if (recognition) recognition.stop();
-            speak('Stopped.');
-        };
-
-        async function askQuestion(idx) {
-            const q = questions[idx].q;
-            log('Agent: ' + q);
-            await speak(q);
-            recognition.start();
+            }
+            const m2 = text.match(/([A-Za-z]+)\s*(\d{1,2})/i);
+            if (m2) {
+                const mon = months[m2[1].toLowerCase().slice(0, 3)];
+                const day = parseInt(m2[2], 10);
+                if (mon != null) return new Date((new Date()).getFullYear(), mon, day);
+            }
+            return null;
+        }
+        function parseTimeSmart(text) {
+            if (!text) return null;
+            const m = text.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+            if (m) {
+                let h = parseInt(m[1], 10);
+                const mm = parseInt(m[2] || '0', 10);
+                const ap = (m[3] || '').toLowerCase();
+                if (ap === 'pm' && h < 12) h += 12;
+                if (ap === 'am' && h === 12) h = 0;
+                const d = new Date();
+                d.setHours(h, mm, 0, 0);
+                return d;
+            }
+            return null;
         }
 
-        async function submitBooking() {
-            data.numberOfGuests = parseInt(data.numberOfGuests) || 1;
-            let dt = new Date(data.bookingDate);
-            if (isNaN(dt)) { dt = new Date(); dt.setDate(dt.getDate() + 1); }
-            data.bookingDate = dt.toISOString();
+        /* ===========================
+           Mic level meter
+           =========================== */
+        const meterBar = document.getElementById('meterBar');
+        async function startMeter() {
+            try {
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const src = audioCtx.createMediaStreamSource(audioStream);
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 256;
+                src.connect(analyser);
+                const data = new Uint8Array(analyser.frequencyBinCount);
+                function draw() {
+                    analyser.getByteFrequencyData(data);
+                    let sum = 0;
+                    for (let i = 0; i < data.length; i++) sum += data[i];
+                    const avg = sum / data.length;
+                    const pct = Math.min(1, avg / 160);
+                    meterBar.style.width = (pct * 100) + '%';
+                    meterRAF = requestAnimationFrame(draw);
+                }
+                draw();
+            } catch (e) {
+                console.warn('Microphone access or meter failed', e);
+            }
+        }
+        function stopMeter() {
+            if (meterRAF) cancelAnimationFrame(meterRAF);
+            if (audioStream) audioStream.getTracks().forEach(t => t.stop());
+            if (audioCtx) audioCtx.close();
+            audioStream = audioCtx = analyser = meterRAF = null;
+            meterBar.style.width = '0%';
+        }
 
-            const res = await fetch('/api/bookings', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...data, location: null })
+        /* ===========================
+           Beep + TTS helpers (speakThenPause)
+           Ensures TTS finishes before starting recognition
+           =========================== */
+        function beepPromise(duration = 90, freq = 1000, vol = 0.02) {
+            return new Promise(resolve => {
+                try {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const o = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    o.type = 'sine'; o.frequency.value = freq; g.gain.value = vol;
+                    o.connect(g); g.connect(ctx.destination);
+                    o.start(0);
+                    setTimeout(() => { try { o.stop(); ctx.close(); } catch (e) { }; resolve(); }, duration);
+                } catch (e) {
+                    setTimeout(resolve, 120);
+                }
             });
-            const json = await res.json();
-            log('Server: ' + JSON.stringify(json, null, 2));
-            const suggestion = json.booking?.weatherInfo?.suggestion || '';
-            await speak(`Your booking is confirmed for ${json.booking.numberOfGuests} guests on ${new Date(json.booking.bookingDate).toDateString()}. ${suggestion}`);
         }
+        function speakText(text, opts = { lang: 'en-IN', voiceNameContains: null, rate: 1.0 }) {
+            return new Promise((resolve) => {
+                try {
+                    const synth = window.speechSynthesis;
+                    if (!synth) return resolve();
+                    let started = false;
+                    function make() {
+                        const u = new SpeechSynthesisUtterance(String(text));
+                        u.lang = opts.lang || 'en-IN';
+                        u.rate = opts.rate || 1.0;
+                        if (opts.voiceNameContains) {
+                            const v = synth.getVoices().find(v => (v.name || '').toLowerCase().includes(opts.voiceNameContains.toLowerCase()));
+                            if (v) u.voice = v;
+                        } else {
+                            const langVoice = synth.getVoices().find(v => (v.lang || '').toLowerCase().startsWith(u.lang.toLowerCase()));
+                            if (langVoice) u.voice = langVoice;
+                        }
+                        u.onend = () => resolve();
+                        u.onerror = () => resolve();
+                        synth.speak(u);
+                        started = true;
+                    }
+                    const voices = synth.getVoices();
+                    if (!voices || voices.length === 0) {
+                        const onv = () => { synth.removeEventListener('voiceschanged', onv); make(); };
+                        synth.addEventListener('voiceschanged', onv);
+                        setTimeout(() => { if (!started) make(); }, 160);
+                    } else make();
+                } catch (e) { resolve(); }
+            });
+        }
+        async function speakThenPause(promptText, opts = {}) {
+            // Ensure no recognition is active while speaking
+            try { if (currentRecognition && typeof currentRecognition.abort === 'function') currentRecognition.abort(); } catch (e) { }
+            try { stopMeter(); } catch (e) { }
+            await beepPromise(90);
+            await speakText(promptText, opts);
+            await new Promise(r => setTimeout(r, 200)); // allow TTS bleed to settle
+        }
+
+        /* ===========================
+           listenOnce wrapper using Web Speech API
+           - returns object { success, transcript, confidence, reason }
+           - uses currentRecognition global for abort
+           =========================== */
+        function listenOnce({ lang = 'en-IN', interim = true, timeoutMs = 6000, maxAlternatives = 6 } = {}) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return Promise.resolve({ success: false, reason: 'unsupported' });
+            return new Promise(async (resolve) => {
+                // start meter
+                await startMeter();
+                const rec = new SpeechRecognition();
+                currentRecognition = rec;
+                rec.lang = lang;
+                rec.interimResults = interim;
+                rec.maxAlternatives = maxAlternatives;
+                let gotFinal = false;
+                let timer = null;
+
+                rec.onresult = (ev) => {
+                    const idx = ev.resultIndex;
+                    const r = ev.results[idx];
+                    // pick best alt
+                    let best = null;
+                    for (let i = 0; i < r.length; i++) {
+                        const alt = r[i];
+                        if (!best || alt.confidence > best.confidence) best = alt;
+                    }
+                    if (!best) return;
+                    document.getElementById('transcript').textContent = (r.isFinal ? 'Final: ' : 'Interim: ') + best.transcript + (best.confidence != null ? ` (conf ${best.confidence.toFixed(2)})` : '');
+                    if (r.isFinal) {
+                        gotFinal = true;
+                        clearTimeout(timer);
+                        stopMeter();
+                        currentRecognition = null;
+                        resolve({ success: true, transcript: best.transcript.trim(), confidence: best.confidence, alternatives: Array.from(r).map(a => ({ transcript: a.transcript, confidence: a.confidence })) });
+                    }
+                };
+
+                rec.onerror = (e) => {
+                    clearTimeout(timer);
+                    stopMeter();
+                    currentRecognition = null;
+                    resolve({ success: false, reason: e && e.error ? e.error : 'error' });
+                };
+
+                rec.onend = () => {
+                    if (!gotFinal) {
+                        clearTimeout(timer);
+                        stopMeter();
+                        currentRecognition = null;
+                        resolve({ success: false, reason: 'no-speech' });
+                    }
+                };
+
+                try {
+                    rec.start();
+                    timer = setTimeout(() => {
+                        try { rec.stop(); } catch (e) { }
+                    }, timeoutMs);
+                } catch (err) {
+                    clearTimeout(timer);
+                    stopMeter();
+                    currentRecognition = null;
+                    resolve({ success: false, reason: 'start-failed' });
+                }
+            });
+        }
+
+        /* ===========================
+           Specialized handler for numberOfGuests
+           - forces prompt to include word "guests"
+           - retries on no-speech and low confidence
+           - enforces lower bound >= 1 and upper bound <= MAX_GUESTS
+           =========================== */
+        async function captureGuests(lang) {
+            const prompt = (lang.startsWith('hi')) ? "कितने लोग हैं? कृपया 'दो मेहमान' या '2 guests' बोलें।" : "How many guests? Please say '2 guests' or 'two guests'.";
+            // speak then listen pattern
+            for (let attempt = 0; attempt < 3; attempt++) {
+                await speakThenPause(prompt, { lang });
+                const res = await listenOnce({ lang, interim: true, timeoutMs: 6000 });
+                if (!res.success) {
+                    if (res.reason === 'no-speech') {
+                        document.getElementById('flowStatus').textContent = `No speech detected for guests (attempt ${attempt + 1}/3) — try '2 guests'.`;
+                        continue;
+                    } else {
+                        document.getElementById('flowStatus').textContent = `Recognition error: ${res.reason}`;
+                        continue;
+                    }
+                }
+                // parse number anywhere in transcript
+                const parsed = extractNumberFromText(res.transcript);
+                if (parsed === null) {
+                    document.getElementById('flowStatus').textContent = `No number found in "${res.transcript}". Please include the word 'guests'.`;
+                    continue;
+                }
+                // bounds check
+                if (parsed < 1) {
+                    document.getElementById('flowStatus').textContent = `Number must be at least 1. Heard ${parsed}. Try again.`;
+                    continue;
+                }
+                if (parsed > MAX_GUESTS) {
+                    document.getElementById('flowStatus').textContent = `Maximum allowed guests is ${MAX_GUESTS}. Heard ${parsed}. Try again.`;
+                    continue;
+                }
+                // good value
+                collected.numberOfGuests = parsed;
+                document.getElementById('val-numberOfGuests').textContent = parsed;
+                document.getElementById('edit-numberOfGuests').value = parsed;
+                document.getElementById('flowStatus').textContent = `Captured guests: ${parsed}`;
+                return true;
+            }
+            // fallback: typed prompt
+            const v = prompt('Enter number of guests (fallback):');
+            const asn = parseInt(v, 10) || null;
+            if (asn && asn >= 1 && asn <= MAX_GUESTS) {
+                collected.numberOfGuests = asn;
+                document.getElementById('val-numberOfGuests').textContent = asn;
+                document.getElementById('edit-numberOfGuests').value = asn;
+            } else {
+                document.getElementById('flowStatus').textContent = 'Invalid manual input for guests';
+            }
+            return true;
+        }
+
+        /* ===========================
+           Generic askField flow (Name, Date, Time, Cuisine, Special)
+           uses speakThenPause -> listenOnce
+           =========================== */
+        async function askField(name, lang) {
+            const prompts = {
+                customerName: (lang.startsWith('hi') ? 'आपका नाम क्या है?' : 'What name should I use for the booking?'),
+                bookingDate: (lang.startsWith('hi') ? 'कृपया तारीख बताएं, उदाहरण: 20 अगस्त' : 'Which date would you like to book? Say like July 21 or 21 August.'),
+                bookingTime: (lang.startsWith('hi') ? 'कृपया समय बताएं, उदाहरण: 6 बजे शाम' : 'At what time should I reserve the table? Say like 6 pm or 6:00 p.m.'),
+                cuisinePreference: (lang.startsWith('hi') ? 'पसंदीदा व्यंजन बताएं: Italian, Chinese, Indian' : 'Any preferred cuisine? Italian, Chinese, Indian, etc.'),
+                specialRequests: (lang.startsWith('hi') ? 'क्या कोई विशेष अनुरोध है? जन्मदिन, एलर्जी आदि' : 'Any special requests? For example birthday, anniversary, or dietary restrictions?')
+            };
+            await speakThenPause(prompts[name], { lang });
+            const res = await listenOnce({ lang, interim: true, timeoutMs: 6000 });
+            if (!res.success) {
+                document.getElementById('flowStatus').textContent = `${name}: voice capture failed (${res.reason}) — ask user to type.`;
+                const v = prompt(`Enter ${name}:`);
+                if (name === 'bookingDate') {
+                    const d = parseDateSmart(v);
+                    collected[name] = d ? d.toISOString() : v;
+                    document.getElementById('val-' + name).textContent = d ? d.toLocaleDateString() : (v || '—');
+                    document.getElementById('edit-' + name).value = d ? d.toISOString().slice(0, 10) : (v || '');
+                    return true;
+                }
+                if (name === 'bookingTime') {
+                    const t = parseTimeSmart(v);
+                    collected[name] = t ? t.toISOString() : v;
+                    document.getElementById('val-' + name).textContent = t ? t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : (v || '—');
+                    document.getElementById('edit-' + name).value = v || '';
+                    return true;
+                }
+                collected[name] = v || '';
+                document.getElementById('val-' + name).textContent = v || '—';
+                document.getElementById('edit-' + name).value = v || '';
+                return true;
+            }
+            // success path: parse appropriately
+            if (name === 'bookingDate') {
+                const d = parseDateSmart(res.transcript) || parseDateSmart(document.getElementById('edit-' + name).value);
+                collected[name] = d ? d.toISOString() : res.transcript;
+                document.getElementById('val-' + name).textContent = d ? d.toLocaleDateString() : res.transcript;
+                document.getElementById('edit-' + name).value = d ? d.toISOString().slice(0, 10) : res.transcript;
+                document.getElementById('flowStatus').textContent = d ? `Captured date ${d.toLocaleDateString()}` : `Captured raw date: ${res.transcript}`;
+                return true;
+            }
+            if (name === 'bookingTime') {
+                let t = parseTimeSmart(res.transcript);
+                if (!t) {
+                    // fallback: if user said 'evening 6' assume pm
+                    const digits = res.transcript.match(/(\d{1,2})/);
+                    if (digits) {
+                        let h = parseInt(digits[1], 10);
+                        if (res.transcript.toLowerCase().includes('evening') || res.transcript.toLowerCase().includes('pm')) h = (h % 12) + 12;
+                        const dt = new Date(); dt.setHours(h, 0, 0, 0);
+                        t = dt;
+                    }
+                }
+                collected[name] = t ? t.toISOString() : res.transcript;
+                document.getElementById('val-' + name).textContent = t ? t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : res.transcript;
+                document.getElementById('edit-' + name).value = t ? t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : res.transcript;
+                document.getElementById('flowStatus').textContent = t ? `Captured time ${t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : `Captured raw time: ${res.transcript}`;
+                return true;
+            }
+
+            // generic field: accept transcript
+            collected[name] = res.transcript;
+            document.getElementById('val-' + name).textContent = res.transcript;
+            document.getElementById('edit-' + name).value = res.transcript;
+            document.getElementById('flowStatus').textContent = `Captured ${name}`;
+            return true;
+        }
+
+        /* ===========================
+           Main flow
+           =========================== */
+        async function startFlow() {
+            if (running) return;
+            running = true;
+            document.getElementById('flowStatus').textContent = 'Voice flow started';
+            const lang = document.getElementById('langSelect').value || 'en-IN';
+            try {
+                // ask name
+                await askField('customerName', lang);
+                // guests (special handler)
+                await captureGuests(lang);
+                // date
+                await askField('bookingDate', lang);
+                // time
+                await askField('bookingTime', lang);
+                // cuisine
+                await askField('cuisinePreference', lang);
+                // special requests
+                await askField('specialRequests', lang);
+
+                document.getElementById('flowStatus').textContent = 'Voice flow completed. Review summary and click Confirm & Preview.';
+            } catch (e) {
+                console.error('Flow error', e);
+                document.getElementById('flowStatus').textContent = 'Flow aborted due to error.';
+            } finally {
+                running = false;
+                stopMeter();
+            }
+        }
+
+        /* ===========================
+           UI wiring
+           =========================== */
+        document.getElementById('startBtn').addEventListener('click', startFlow);
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            running = false;
+            try { if (currentRecognition) currentRecognition.abort(); } catch (e) { }
+            stopMeter();
+            document.getElementById('flowStatus').textContent = 'Voice flow stopped';
+        });
+        document.getElementById('applyEdit').addEventListener('click', () => {
+            collected.customerName = document.getElementById('edit-customerName').value;
+            collected.numberOfGuests = parseInt(document.getElementById('edit-numberOfGuests').value, 10) || null;
+            collected.bookingDate = document.getElementById('edit-bookingDate').value || null;
+            collected.bookingTime = document.getElementById('edit-bookingTime').value || null;
+            collected.cuisinePreference = document.getElementById('edit-cuisinePreference').value;
+            collected.specialRequests = document.getElementById('edit-specialRequests').value;
+            // reflect
+            document.getElementById('val-customerName').textContent = collected.customerName || '—';
+            document.getElementById('val-numberOfGuests').textContent = collected.numberOfGuests || '—';
+            document.getElementById('val-bookingDate').textContent = collected.bookingDate ? (new Date(collected.bookingDate)).toLocaleDateString() : '—';
+            document.getElementById('val-bookingTime').textContent = collected.bookingTime || '—';
+            document.getElementById('val-cuisinePreference').textContent = collected.cuisinePreference || '—';
+            document.getElementById('val-specialRequests').textContent = collected.specialRequests || '—';
+            document.getElementById('flowStatus').textContent = 'Edits applied';
+        });
+
+        document.getElementById('confirmBtn').addEventListener('click', async () => {
+            const payload = {
+                customerName: document.getElementById('edit-customerName').value,
+                numberOfGuests: document.getElementById('edit-numberOfGuests').value,
+                bookingDate: document.getElementById('edit-bookingDate').value,
+                bookingTime: document.getElementById('edit-bookingTime').value,
+                cuisinePreference: document.getElementById('edit-cuisinePreference').value,
+                specialRequests: document.getElementById('edit-specialRequests').value
+            };
+            document.getElementById('previewResult').style.display = 'block';
+            document.getElementById('previewJson').textContent = 'Calling preview...';
+            document.getElementById('flowStatus').textContent = 'Calling preview API...';
+            try {
+                const res = await fetch('/api/bookings?preview=true', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const j = await res.json();
+                document.getElementById('previewJson').textContent = JSON.stringify(j, null, 2);
+                document.getElementById('flowStatus').textContent = j.success ? 'Preview returned' : 'Preview returned error';
+            } catch (e) {
+                document.getElementById('previewJson').textContent = 'Preview call failed: ' + (e.message || e);
+                document.getElementById('flowStatus').textContent = 'Preview call failed';
+            }
+        });
+
+        document.getElementById('previewBtn').addEventListener('click', () => document.getElementById('confirmBtn').click());
+
+        /* ===========================
+           Init small defaults
+           =========================== */
+        document.getElementById('edit-customerName').value = '';
+        document.getElementById('edit-numberOfGuests').value = '';
     </script>
 </body>
 
